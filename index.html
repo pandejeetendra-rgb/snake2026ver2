@@ -1,1 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Cyber Security Snake Game</title>
+<script type="text/javascript" src="https://ff.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=B9ocrna4mU1LdO4milFXdjVXcV71HPH0EZA_CyKAfCtGBSyYkRy9wMTDCAW5C7rqiiWLc3lrmgdHR8QFPoPW4QKm-F3L6SRZJY0qvE0i2jmTgIshcPXrtt5YGb5Mmrb3fhmhgjKV1xO7vPJLMWf7UhcFUDu1EtIpnE7QJBAaIIZYQazpE_q83yWuTxA11KIXV5XztbeWkSNLqquf_lbiVYTCQqVum2I_t2iUXLKI05jFK4_FGqEgUMq__0gxwvZBtadcpWwmRIUsmsfztAW6aA" charset="UTF-8"></script><style>
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:#0b0b0b;
+    color:#fff;
+    font-family:Arial,sans-serif;
+    text-align:center;
+    min-height:100vh;
+    overflow-x:hidden;
+  }
+  .wrap{
+    width:100%;
+    max-width:500px;
+    margin:0 auto;
+    padding:6px 8px 10px;
+  }
+  canvas{
+    display:block;
+    background:#000;
+    border:2px solid #00e0ff;
+    border-radius:10px;
+    margin:4px auto 6px;
+    touch-action:none;
+    width:min(92vw, 380px);
+    height:min(92vw, 380px);
+  }
+  #question{
+    color:#00e0ff;
+    font-size:14px;
+    line-height:1.25;
+    margin:4px 0 4px;
+    min-height:34px;
+    padding:0 4px;
+  }
+  #options{
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    width:92%;
+    max-width:380px;
+    margin:0 auto 4px;
+  }
+  .opt-row{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 8px;
+    border:1px solid #00e0ff;
+    border-radius:7px;
+    background:#121212;
+    min-height:34px;
+  }
+  .swatch{
+    width:16px;
+    height:16px;
+    border:1px solid #fff;
+    border-radius:3px;
+    flex:0 0 16px;
+  }
+  .opt-text{
+    text-align:left;
+    flex:1;
+    font-size:13px;
+    line-height:1.15;
+  }
+  #feedback{
+    min-height:18px;
+    margin:2px 0 4px;
+    font-size:13px;
+  }
+  #controls{
+    display:grid;
+    grid-template-columns:56px 56px 56px;
+    grid-template-rows:56px 56px 56px;
+    justify-content:center;
+    align-items:center;
+    gap:6px;
+    margin:4px auto 6px;
+  }
+  .btn{
+    background:#00d8f8;
+    color:#000;
+    font-weight:bold;
+    font-size:22px;
+    border:none;
+    border-radius:10px;
+    width:56px;
+    height:56px;
+    box-shadow:0 2px 4px rgba(0,0,0,0.35);
+  }
+  .btn:active{background:#00b4cc;transform:scale(0.96);}
+  #submitBtn{
+    background:#00d8f8;
+    color:#000;
+    font-weight:bold;
+    font-size:14px;
+    border:none;
+    border-radius:8px;
+    padding:9px 16px;
+    margin:2px auto 4px;
+  }
+  #hud{
+    font-size:13px;
+    color:#b8faff;
+    line-height:1.3;
+    margin-top:2px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <canvas id="gameCanvas" width="420" height="420"></canvas>
+  <div id="question"></div>
+  <div id="options"></div>
+  <div id="feedback"></div>
+
+  <div id="controls">
+    <div></div><button class="btn" id="upBtn">↑</button><div></div>
+    <button class="btn" id="leftBtn">←</button><div></div><button class="btn" id="rightBtn">→</button>
+    <div></div><button class="btn" id="downBtn">↓</button><div></div>
+  </div>
+
+  <button id="submitBtn">Submit Score</button>
+  <div id="hud">Questions answered: <span id="qdone">0</span>/8 • Score: <span id="sc">0</span></div>
+</div>
+
+<script>
+const redirectBase = "https://script.google.com/macros/s/AKfycbxAZwesoXAqAkehnm9IXXFQItK9jbGYb3eLnXXSyB11XNM1e4YdxeBv904Jo7JKH7Eb0g/exec";
+const params = new URLSearchParams(window.location.search);
+const pid = params.get("pid") || "UOU-GBL-TEST";
+const arm = "GBL";
+
+const canvas=document.getElementById("gameCanvas"),ctx=canvas.getContext("2d");
+const box=20;let snake=[{x:5*box,y:5*box}],dir="RIGHT",queuedDir="RIGHT",score=0,foods=[],colors=["red","yellow","green","blue"];
+let moveInterval=250,acc=0,lastTs=0,running=true,answered=0,totalQuestions=8;
+
+const questions=[
+ {q:"Which of the following represents the three key principles of cybersecurity?",opts:["Anonymity, Security, Resilience","Confidentiality, Integrity, Availability","Speed, Access, Control","Detection, Recovery, Response"],a:1},
+ {q:"Which Indian law primarily deals with cybercrimes?",opts:["The Evidence Act","The IT Act 2000","The Penal Code 1860","The RTI Act 2005"],a:1},
+ {q:"Which of these is NOT a goal of data protection?",opts:["Preventing unauthorized access","Maintaining confidentiality","Encouraging data leaks","Ensuring integrity"],a:2},
+ {q:"Which protocol indicates a secure website connection?",opts:["HTTP","HTTPS","FTP","IP"],a:1},
+ {q:"Social engineering primarily exploits:",opts:["Software vulnerabilities","Human psychology","Hardware failures","Encryption errors"],a:1},
+ {q:"Which browser feature helps verify the authenticity of websites?",opts:["Address bar lock icon","Bookmarks","Cookies","History tab"],a:0},
+ {q:"Which is a good smartphone security practice?",opts:["Use public Wi-Fi for banking","Download apps from unknown sites","Install updates regularly","Share passwords via SMS"],a:2},
+ {q:"Which of these is a secure banking habit?",opts:["Sharing OTP with friends","Saving passwords in browser","Using two-factor authentication","Clicking email links for login"],a:2}
+];
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+shuffle(questions);
+let currentQ=null;const $qdone=document.getElementById("qdone"),$sc=document.getElementById("sc");
+function updateHUD(){$qdone.textContent=answered;$sc.textContent=score;}
+function renderQuestion(){const q=currentQ;const qDiv=document.getElementById("question");const opts=document.getElementById("options");qDiv.textContent=q?q.q:"";opts.innerHTML="";if(!q)return;q.opts.forEach((text,i)=>{const row=document.createElement("div");row.className="opt-row";const sw=document.createElement("div");sw.className="swatch";sw.style.background=colors[i];const tx=document.createElement("div");tx.className="opt-text";tx.textContent=text;row.appendChild(sw);row.appendChild(tx);opts.appendChild(row);});}
+function randCell(){return{x:Math.floor(Math.random()*(canvas.width/box))*box,y:Math.floor(Math.random()*(canvas.height/box))*box};}
+function equal(a,b){return a.x===b.x&&a.y===b.y;}
+function blocked(p){return snake.some(s=>equal(s,p))||foods.some(f=>f&&equal(f,p));}
+function spawnFoodFor(i){let p;do{p=randCell();}while(blocked(p));foods[i]={x:p.x,y:p.y,color:colors[i],idx:i};}
+function setDirection(newDir){if(newDir==="LEFT"&&dir!=="RIGHT")queuedDir="LEFT";if(newDir==="RIGHT"&&dir!=="LEFT")queuedDir="RIGHT";if(newDir==="UP"&&dir!=="DOWN")queuedDir="UP";if(newDir==="DOWN"&&dir!=="UP")queuedDir="DOWN";}
+document.addEventListener("keydown",e=>{if(e.key==="ArrowLeft")setDirection("LEFT");if(e.key==="ArrowRight")setDirection("RIGHT");if(e.key==="ArrowUp")setDirection("UP");if(e.key==="ArrowDown")setDirection("DOWN");});
+["upBtn","downBtn","leftBtn","rightBtn"].forEach(id=>{document.getElementById(id).addEventListener("click",()=>setDirection(id.replace("Btn","").toUpperCase()));});
+function nextQuestion(){return questions.shift()||null;}
+function handleAnswer(colorIdx){if(!currentQ)return;if(colorIdx===currentQ.a){score+=5;document.getElementById("feedback").textContent="✅ Correct +5";}else{score=Math.max(0,score-2);document.getElementById("feedback").textContent="❌ Wrong -2";}answered++;updateHUD();if(answered>=totalQuestions){running=false;document.getElementById("feedback").textContent="🎯 All questions done";setTimeout(()=>redirectToForm(),1500);}else{currentQ=nextQuestion();renderQuestion();}}
+function step(){dir=queuedDir;let hx=snake[0].x,hy=snake[0].y;if(dir==="LEFT")hx-=box;if(dir==="RIGHT")hx+=box;if(dir==="UP")hy-=box;if(dir==="DOWN")hy+=box;if(hx<0)hx=canvas.width-box;if(hy<0)hy=canvas.height-box;if(hx>=canvas.width)hx=0;if(hy>=canvas.height)hy=0;const idx=foods.findIndex(f=>f.x===hx&&f.y===hy);if(idx>-1){handleAnswer(idx);spawnFoodFor(idx);}else{snake.pop();}const head={x:hx,y:hy};if(snake.some((s,i)=>i&&equal(s,head))){running=false;document.getElementById("feedback").textContent="💀 Game Over";setTimeout(()=>redirectToForm(),1500);}else snake.unshift(head);}
+function draw(){ctx.fillStyle="#000";ctx.fillRect(0,0,canvas.width,canvas.height);foods.forEach(f=>{ctx.fillStyle=f.color;ctx.fillRect(f.x,f.y,box,box);});snake.forEach((s,i)=>{ctx.fillStyle=i===0?"#00e0ff":"#0099aa";ctx.fillRect(s.x,s.y,box,box);});}
+function loop(ts){if(!running){draw();return;}if(!lastTs)lastTs=ts;const dt=ts-lastTs;lastTs=ts;acc+=dt;if(acc>=moveInterval){step();acc=0;}draw();requestAnimationFrame(loop);}
+function redirectToForm(){window.location.href=`${redirectBase}?pid=${pid}&arm=${arm}&score=${score}`;}
+document.getElementById("submitBtn").addEventListener("click",redirectToForm);
+function start(){foods=new Array(4);for(let i=0;i<4;i++)spawnFoodFor(i);currentQ=nextQuestion();renderQuestion();updateHUD();requestAnimationFrame(loop);}start();
+</script>
+</body>
+</html>
 
